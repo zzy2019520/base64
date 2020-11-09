@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <input type="file" onchange="change(this)">
+    <div id="imgBox1">
+        
+    </div>
+    <div id="imgBox2">
+        
+    </div>
+</body>
+<script>
+    var number=0;
+    
+    
+    function change(self){
+        //上传图片之后的对象数组；（如果后台约定直接通过formData上传，直接上传这里面的对象就好了，可以自行百度）
+        console.log(self.files);
+        //创建一个读取文件的对象
+        let reader = new FileReader();
+        //读取文件，转码
+        reader.readAsDataURL(self.files[0]);
+        reader.onload = function (e) {
+            let base64 = e.target.result; //转码过后的base64编码
+            console.log("压缩前", base64.length / 1024);
+            //创建一个图片
+            let newImage = new Image();
+			let quality = 0.6;    //压缩系数0-1之间，压缩到0.9以上会有bug，注意！（可以自行设置）
+			newImage.src = base64;
+            newImage.setAttribute("crossOrigin", 'Anonymous');	//url为外域时需要
+			let imgWidth, imgHeight;
+            newImage.onload = function () {
+				imgWidth = this.width;
+				imgHeight = this.height;
+                //给生成图片设置一个默认的宽度（可以自行设置）
+                let myWidth =500;
+                //准备在画布上绘制图片
+				let canvas = document.createElement("canvas");
+				let ctx = canvas.getContext("2d");
+                //判断上传的图片的宽高是否超过设置的默认宽度以及设置同比例的高
+				if (Math.max(imgWidth, imgHeight) > myWidth) {
+					if (imgWidth > imgHeight) {
+						canvas.width = myWidth;
+						canvas.height = myWidth * imgHeight / imgWidth;
+					} else {
+						canvas.height = myWidth;
+						canvas.width = myWidth * imgWidth / imgHeight;
+					}
+				} else {
+					canvas.width = imgWidth;
+					canvas.height = imgHeight;
+				}
+                //清空画布
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+                //开始绘制图片到画布上
+				ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+				let newBase64 = canvas.toDataURL("image/jpeg", quality);//压缩图片大小（重点代码）
+				// 获取到当前的图片的大小，然后调整成自己需要的大小，例如说需要200KB-500KB之间（可以自行设置）
+				while (newBase64.length / 1024 > 100) {
+					quality -= 0.02;
+					newBase64 = canvas.toDataURL("image/jpeg", quality);
+				}
+                while (newBase64.length / 1024 < 50) {
+					quality += 0.02;
+					newBase64 = canvas.toDataURL("image/jpeg", quality);
+                }
+                number=number+1;
+				myCallback(newBase64);//回调函数，做你想要的操作（可以自行设置）
+			}
+        };
+
+    }
+    function myCallback(base64) {
+        console.log("压缩后", base64.length / 1024)
+        console.log(base64)
+        
+        document.getElementById("imgBox"+number).innerHTML="<img src="+base64+">"
+        
+    }
+    
+
+</script>
+</html>
